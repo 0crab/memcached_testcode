@@ -9,9 +9,8 @@
 #include <libmemcached/memcached.h>
 #include <stdlib.h>
 #include "tracer.h"
-bool sock=false;
-int num=10;
-int range=1000000;
+bool sock=true;
+int num=1000000;
 int main(int argc, char **argv) {
     memcached_server_st *servers;
     if(sock){
@@ -28,18 +27,22 @@ int main(int argc, char **argv) {
     uint32_t flags;
     memcached_return_t error;
 
-    int tmp;
-    srand((uint64_t)time(0));
+    Tracer tracer;
+    tracer.startTime();
+    int success_num=0,fail_num=0;
     for(int i=0;i<num;i++){
-        tmp=rand()%range;
-        std::sprintf(key,"%d",tmp);
+        std::sprintf(key,"%d",i);
         value=memcached_get(memc,key,std::strlen(key), &value_length, &flags, &error);
         if(error==memcached_return_t::MEMCACHED_SUCCESS){
-            printf("%d:%s\n",tmp,value);
+            //printf("%d:%s\n",tmp,value);
+            success_num++;
         }else{
-            printf("%d:error\n",tmp);
+            //printf("%d:error\n",tmp);
+            fail_num++;
         }
     }
+    printf("%ld\n",tracer.getRunTime());
+    printf("total get:%d\nsuccess:%d\nfail:%d\n",num,success_num,fail_num);
     return 0;
 }
 
