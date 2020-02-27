@@ -10,7 +10,7 @@
 constexpr size_t total_count = 1000000;
 bool once_test=true;
 int main(int argc, char **argv) {
-    memcached_server_st *servers = memcached_servers_parse("/home/iclab/czl/memcached.sock");
+    memcached_server_st *servers = memcached_servers_parse("/home/czl/memcached.sock");
     //memcached_server_st *servers = memcached_servers_parse("localhost"); 
     memcached_st * memc = memcached_create(NULL);
     memcached_server_push(memc, servers);

@@ -11,7 +11,7 @@
 #include "tracer.h"
 bool sock=true;
 int num=10;
-int range=1000000;
+int range=100;
 int main(int argc, char **argv) {
     memcached_server_st *servers;
     if(sock){
@@ -21,8 +21,8 @@ int main(int argc, char **argv) {
     }
     memcached_st * memc = memcached_create(NULL);
     memcached_server_push(memc, servers);
-
-    char key[64];
+    memcached_behavior_set(memc, MEMCACHED_BEHAVIOR_BINARY_PROTOCOL, (uint64_t) 1);
+    unsigned long key;
     char *value;
     size_t value_length;
     uint32_t flags;
@@ -32,8 +32,8 @@ int main(int argc, char **argv) {
     srand((uint64_t)time(0));
     for(int i=0;i<num;i++){
         tmp=rand()%range;
-        std::sprintf(key,"%d",tmp);
-        value=memcached_get(memc,key,std::strlen(key), &value_length, &flags, &error);
+        key=tmp;
+        value=memcached_get(memc,(const char *)&key,8, &value_length, &flags, &error);
         if(error==memcached_return_t::MEMCACHED_SUCCESS){
             printf("%d:%s\n",tmp,value);
         }else{

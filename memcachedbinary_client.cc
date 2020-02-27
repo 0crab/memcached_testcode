@@ -64,6 +64,7 @@ int con_send_package(int num,char * st_buf){
     st_buf[4]=0x08;
 
     char key_buf[10];
+    memset(key_buf,0, sizeof(key_buf));
     char value_buf[20]={'h','e','l','l','o'};
     unsigned char key_len;
     unsigned char total_body;
@@ -71,14 +72,15 @@ int con_send_package(int num,char * st_buf){
     sprintf(key_buf,"%d",num);
     key_len=strlen(key_buf);
     memcpy(value_buf+5,key_buf,key_len);
-    total_body=8+5+2*key_len;
+    total_body=8+5+8+key_len;
 
     //key_len<255,total_body<255 only use a single byte
-    st_buf[3]=key_len;
+    st_buf[3]=8;
     st_buf[11]=total_body;
 
-    memcpy(st_buf+32,key_buf,key_len);
-    memcpy(st_buf+32+key_len,value_buf,5+key_len);
+    unsigned long *keyptr=(unsigned long *)(st_buf+32);
+    *keyptr=(unsigned long )num;
+    memcpy(st_buf+32+8,value_buf,5+key_len);
 
-    return 37+2*key_len;
+    return 45+key_len;
 }
