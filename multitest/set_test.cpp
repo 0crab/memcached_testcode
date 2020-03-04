@@ -12,12 +12,15 @@ Binary Protocol Reference:
 #include <cstring>
 #include <pthread.h>
 #include "../tracer.h"
+#include <libmemcached/memcached.h>
 #define UNIX_DOMAIN "/home/czl/memcached.sock"
 #define TEST_NUM 1000000
 #define PACKAGE_NUM 1
 #define MEMCACHED_MAX_BUF 8192
 #define THREAD_NUM 1
 #define ST_LEN 100
+#define sock true
+
 using namespace std;
 
 char *database[TEST_NUM];
@@ -73,8 +76,28 @@ void *thread_send(){
 
 int main(void)
 {
-    con_database();
 
+    con_database();
+    memcached_server_st *servers;
+    if(sock){
+        servers = memcached_servers_parse("/home/czl/memcached.sock");
+    }else{
+        servers = memcached_servers_parse("localhost");
+    }
+    memcached_st * memc = memcached_create(NULL);
+    memcached_server_push(memc, servers);
+    //memcached_behavior_set(memc, MEMCACHED_BEHAVIOR_BINARY_PROTOCOL, (uint64_t) 1);
+
+    char *value;
+    int value_length;
+    unsigned int flags;
+    memcached_return_t error;
+    unsigned  long getkey=123;
+    value=memcached_get(memc, (const char *)&getkey, 8, reinterpret_cast<size_t *>(&value_length), &flags, &error);
+    printf("send start get\n");
+
+    Tracer tracer;
+    tracer.startTime();
     pthread_t pid[THREAD_NUM];
 
     for(int i=0;i<THREAD_NUM;i++){
@@ -86,6 +109,12 @@ int main(void)
     for(int i=0;i<THREAD_NUM;i++){
         pthread_join(pid[i],NULL);
     }
+    printf("%lu\n",tracer.getRunTime());
+
+    getkey=321;
+    value=memcached_get(memc, (const char *)&getkey, 8, reinterpret_cast<size_t *>(&value_length), &flags, &error);
+    printf("send finish get\n");
+    memcached_free(memc);
 
     return 0;
 }
