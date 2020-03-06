@@ -20,7 +20,7 @@ Binary Protocol Reference:
 #define MEMCACHED_MAX_BUF 8192
 
 #define SET_THREAD_NUM 1
-#define GET_THREAD_NUM 1
+#define GET_THREAD_NUM 0
 #define ST_LEN 100
 #define sock true
 
@@ -65,8 +65,6 @@ void *thread_get_send(){
         //printf("%s\n",rec_buf);
     }
     close(connect_fd);
-
-
 }
 
 
@@ -88,25 +86,9 @@ void *thread_set_send(){
         return NULL;
     }
 
-    int package_len;
-    unsigned long tmpkey;
+
     for(int i=0;i<SET_NUM;i++){
-
-        package_len=0;
-        tmpkey=(unsigned long)*(unsigned long *)(database[i]+32);
-
-        while(1){
-            if(tmpkey==0){
-                break;
-            }
-            else{
-                package_len++;
-            }
-            tmpkey /= 10;
-        }
-        package_len=package_len==0?46:package_len+45;
-
-        write(connect_fd,database[i],package_len);
+        write(connect_fd,database[i],48);
 
     }
     close(connect_fd);
@@ -173,26 +155,25 @@ int con_set_package(int num,char * st_buf){
     //Extra length
     st_buf[4]=0x08;
 
-    char key_buf[10];
-    memset(key_buf,0, sizeof(key_buf));
-    char value_buf[20]={'h','e','l','l','o'};
-    unsigned char key_len;
-    unsigned char total_body;
-
-    sprintf(key_buf,"%d",num);
-    key_len=strlen(key_buf);
-    memcpy(value_buf+5,key_buf,key_len);
-    total_body=8+5+8+key_len;
-
-    //key_len<255,total_body<255 only use a single byte
+    //key_len=8,
+    //value_len=8
+    //total_body=24 only use a single byte
     st_buf[3]=8;
-    st_buf[11]=total_body;
+    st_buf[11]=24;
 
     unsigned long *keyptr=(unsigned long *)(st_buf+32);
     *keyptr=(unsigned long )num;
-    memcpy(st_buf+32+8,value_buf,5+key_len);
 
-    return 45+key_len;
+    char value_buf[8];
+    char num_buf[8];
+    int numlen;
+    memset(value_buf,0x2a, sizeof(value_buf));
+    sprintf(num_buf,"%d",num);
+    numlen=strlen(num_buf);
+    if(numlen>8) printf("num too long \n");
+    memcpy(value_buf,num_buf,numlen);
+    memcpy(st_buf+40,value_buf,8);
+    return 48;
 }
 
 int con_get_package(int num,char * st_buf){
