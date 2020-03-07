@@ -13,12 +13,14 @@ Binary Protocol Reference:
 #include "tracer.h"
 #define UNIX_DOMAIN "/home/czl/memcached.sock"
 #define TEST_NUM 1000000
-#define PACKAGE_NUM 1
+#define BATCH_NUM 80
+#define PACKAGE_LEN 48 //designed
 #define MEMCACHED_MAX_BUF 8192
-#define ST_LEN 100
+
+
 using namespace std;
 
-char *database[TEST_NUM];
+char *database[TEST_NUM/BATCH_NUM];
 
 void con_database();
 
@@ -46,22 +48,26 @@ int main(void)
     con_database();
     Tracer tracer;
     long runtime=0;
-    for(int i=0;i<TEST_NUM;i++){
-
-        tracer.startTime();
-        write(connect_fd,database[i],48);
-        runtime+=tracer.getRunTime();
+    tracer.startTime();
+    for(int i=0;i<TEST_NUM/BATCH_NUM;i++){
+        write(connect_fd,database[i],PACKAGE_LEN*BATCH_NUM);
     }
+    runtime+=tracer.getRunTime();
     printf("%ld\n",runtime);
     close(connect_fd);
     return 0;
 }
 
 void con_database(){
+    char * package_buf;
     char * st_buf;
-    for(int i=0;i<TEST_NUM;i++){
-        st_buf= static_cast<char *>(malloc(50));
-        con_send_package(i,st_buf);
+    for(int i=0;i<TEST_NUM/BATCH_NUM;i++){
+        st_buf=static_cast<char *>(malloc(4096));
+        for(int j=0;j<BATCH_NUM;j++){
+            package_buf= static_cast<char *>(malloc(50));
+            con_send_package(i*BATCH_NUM+j,package_buf);
+            memcpy(st_buf+j*PACKAGE_LEN,package_buf,PACKAGE_LEN);
+        }
         database[i]=st_buf;
     }
 }
